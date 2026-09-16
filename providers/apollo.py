@@ -73,17 +73,18 @@ def search(
     except requests.RequestException as exc:
         raise ProviderError(f"Could not reach Apollo API: {exc}") from exc
 
-    if resp.status_code == 401 or resp.status_code == 403:
-        raise ProviderError(
-            "Apollo API rejected the request — your API key appears to be "
-            "invalid or unauthorized (HTTP %d)." % resp.status_code
-        )
     if resp.status_code != 200:
         detail = ""
         try:
-            detail = resp.json().get("error", resp.text[:200])
+            body = resp.json()
+            detail = body.get("error_details", {}).get("message") or body.get("error") or resp.text[:300]
         except ValueError:
-            detail = resp.text[:200]
+            detail = resp.text[:300]
+
+        if resp.status_code in (401, 403):
+            raise ProviderError(
+                f"Apollo API rejected the request (HTTP {resp.status_code}): {detail}"
+            )
         raise ProviderError(
             f"Apollo API returned an error (HTTP {resp.status_code}): {detail}"
         )
