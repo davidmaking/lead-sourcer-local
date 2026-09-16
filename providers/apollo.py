@@ -52,7 +52,6 @@ def search(
 
     per_page = max(1, min(max_results, 100))
     payload = {
-        "api_key": api_key,
         "q_organization_domains": domain,
         "person_titles": job_titles,
         "person_locations": locations,
@@ -63,8 +62,14 @@ def search(
     # Strip empty fields so Apollo doesn't over-filter on blanks.
     payload = {k: v for k, v in payload.items() if v not in (None, "", [])}
 
+    headers = {
+        "X-Api-Key": api_key,
+        "Content-Type": "application/json",
+        "Cache-Control": "no-cache",
+    }
+
     try:
-        resp = requests.post(APOLLO_SEARCH_URL, json=payload, timeout=20)
+        resp = requests.post(APOLLO_SEARCH_URL, json=payload, headers=headers, timeout=20)
     except requests.RequestException as exc:
         raise ProviderError(f"Could not reach Apollo API: {exc}") from exc
 

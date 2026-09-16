@@ -23,6 +23,15 @@ CREATE TABLE IF NOT EXISTS basket (
     lead_id INTEGER NOT NULL REFERENCES leads(id),
     added_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS excluded_leads (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT,
+    email TEXT,
+    company TEXT,
+    note TEXT,
+    added_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
 """
 
 
@@ -95,3 +104,47 @@ def list_basket(conn):
 
 def get_lead(conn, lead_id: int):
     return conn.execute("SELECT * FROM leads WHERE id = ?", (lead_id,)).fetchone()
+
+
+def add_excluded_leads(conn, entries: list[dict]) -> int:
+    """Insert excluded-lead entries, skipping ones that already exist by email
+    (or by name when no email is given). Returns the number actually inserted."""
+    inserted = 0
+    for entry in entries:
+        email = entry.get("email") or None
+        name = entry.get("name") or None
+        if email:
+            existing = conn.execute(
+                "SELECT id FROM excluded_leads WHERE email = ?", (email,)
+            ).fetchone()
+        else:
+            existing = conn.execute(
+                "SELECT id FROM excluded_leads WHERE name = ? AND email IS NULL",
+                (name,),
+            ).fetchone()
+        if existing:
+            continue
+        conn.execute(
+            "INSERT INTO excluded_leads (name, email, company, note) VALUES (?, ?, ?, ?)",
+            (name, email, entry.get("company"), entry.get("note")),
+        )
+        inserted += 1
+    return inserted
+
+
+def list_excluded_leads(conn):
+    return conn.execute(
+        "SELECT * FROM excluded_leads ORDER BY added_at DESC"
+    ).fetchall()
+
+
+def remove_excluded_lead(conn, excluded_id: int):
+    conn.execute("DELETE FROM excluded_leads WHERE id = ?", (excluded_id,))
+
+
+def get_exclusion_sets(conn):
+    """Returns (emails set, names set) of already-claimed leads, lowercased."""
+    rows = conn.execute("SELECT name, email FROM excluded_leads").fetchall()
+    emails = {row["email"].strip().lower() for row in rows if row["email"]}
+    names = {row["name"].strip().lower() for row in rows if row["name"]}
+    return emails, names

@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Exclusions - Lead Sourcer{% endblock %}
+{% block content %}
+<h1>Exclusion List</h1>
+<p>
+    Leads listed here are blocked from being added to your basket, so you don't
+    double-dip on leads someone else on the team has already claimed.
+</p>
+
+<h2>Add leads</h2>
+<p>
+    Paste rows copied from your team's shared leads board (e.g. Name and Email
+    columns, tab- or comma-separated). One lead per line — extra columns like
+    title or status are fine and will be ignored.
+</p>
+<form method="post" action="/exclusions/import" class="search-form">
+    <textarea name="paste" rows="8" placeholder="Jane Doe&#9;VP Sales&#9;Acme Inc&#9;jane@acme.com&#9;teammate@example.com&#9;Contacted" required></textarea>
+    <button type="submit">Add to exclusion list</button>
+</form>
+
+<h2>Currently excluded ({{ excluded|length }})</h2>
+{% if excluded|length == 0 %}
+<p class="empty-state">No excluded leads yet.</p>
+{% else %}
+<table class="results-table">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Company</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for row in excluded %}
+        <tr>
+            <td>{{ row.name or "-" }}</td>
+            <td>{{ row.email or "-" }}</td>
+            <td>{{ row.company or "-" }}</td>
+            <td>
+                <form method="post" action="/exclusions/remove">
+                    <input type="hidden" name="excluded_id" value="{{ row.id }}">
+                    <button type="submit">Remove</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+{% endblock %}

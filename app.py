@@ -1,4 +1,6 @@
 import os
+import re
+from urllib.parse import quote
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, Form, Request
@@ -36,6 +38,37 @@ def _split_csv(value: str) -> list[str]:
     return [v.strip() for v in value.split(",") if v.strip()]
 
 
+EMAIL_RE = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
+
+
+def _parse_exclusion_paste(text: str) -> list[dict]:
+    """Parse pasted rows (e.g. copied from a Team Leads table) into
+    {name, email, company} dicts. Tolerant of tab- or comma-separated
+    lines with extra columns (title, added-by, status, etc.) mixed in."""
+    entries = []
+    for line in text.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        email_match = EMAIL_RE.search(line)
+        email = email_match.group(0) if email_match else None
+        remainder = line.replace(email, "") if email else line
+        parts = [p.strip(" \t,") for p in re.split(r"\t|,", remainder) if p.strip(" \t,")]
+        name = parts[0] if parts else None
+        company = parts[2] if len(parts) > 2 else (parts[1] if len(parts) > 1 else None)
+        if not name and not email:
+            continue
+        entries.append({"name": name, "email": email, "company": company})
+    return entries
+
+
+def _mark_excluded(results: list[dict], emails: set[str], names: set[str]) -> None:
+    for lead in results:
+        email = (lead.get("email") or "").strip().lower()
+        name = (lead.get("name") or "").strip().lower()
+        lead["excluded"] = bool((email and email in emails) or (name and name in names))
+
+
 def _build_tsv(results: list[dict]) -> str:
     header = ["First Name", "Last Name", "Position", "Company", "Email"]
     lines = ["\t".join(header)]
@@ -52,7 +85,7 @@ def _build_tsv(results: list[dict]) -> str:
 
 
 @app.get("/")
-def index(request: Request):
+def index(request: Request, blocked: str | None = None):
     return templates.TemplateResponse(
         request,
         "index.html",
@@ -61,6 +94,7 @@ def index(request: Request):
             "results": None,
             "tsv": None,
             "error": None,
+            "blocked": blocked,
             "form": {},
         },
     )
@@ -108,8 +142,13 @@ def do_search(
             }
             for lead in leads
         ]
+        with db.get_conn() as conn:
+            emails, names = db.get_exclusion_sets(conn)
+        _mark_excluded(results, emails, names)
     except ProviderError as exc:
         error = str(exc)
+
+    tsv_rows = [lead for lead in results if not lead.get("excluded")]
 
     return templates.TemplateResponse(
         request,
@@ -117,8 +156,9 @@ def do_search(
         {
             "seniority_options": SENIORITY_OPTIONS,
             "results": results,
-            "tsv": _build_tsv(results) if results else None,
+            "tsv": _build_tsv(tsv_rows) if tsv_rows else None,
             "error": error,
+            "blocked": None,
             "form": form_values,
         },
     )
@@ -147,6 +187,12 @@ def basket_add(
         "source_provider": "apollo",
     }
     with db.get_conn() as conn:
+        emails, names = db.get_exclusion_sets(conn)
+        email_key = (email or "").strip().lower()
+        name_key = (name or "").strip().lower()
+        if (email_key and email_key in emails) or (name_key and name_key in names):
+            return RedirectResponse(url=f"/?blocked={quote(name)}", status_code=303)
+
         lead_id = db.find_lead_by_identity(conn, lead)
         if lead_id is None:
             lead_id = db.insert_lead(conn, lead)
@@ -169,6 +215,30 @@ def basket_remove(basket_id: int = Form(...)):
     with db.get_conn() as conn:
         db.remove_from_basket(conn, basket_id)
     return RedirectResponse(url="/basket", status_code=303)
+
+
+@app.get("/exclusions")
+def exclusions_view(request: Request):
+    with db.get_conn() as conn:
+        rows = db.list_excluded_leads(conn)
+    return templates.TemplateResponse(
+        request, "exclusions.html", {"excluded": rows}
+    )
+
+
+@app.post("/exclusions/import")
+def exclusions_import(paste: str = Form(...)):
+    entries = _parse_exclusion_paste(paste)
+    with db.get_conn() as conn:
+        db.add_excluded_leads(conn, entries)
+    return RedirectResponse(url="/exclusions", status_code=303)
+
+
+@app.post("/exclusions/remove")
+def exclusions_remove(excluded_id: int = Form(...)):
+    with db.get_conn() as conn:
+        db.remove_excluded_lead(conn, excluded_id)
+    return RedirectResponse(url="/exclusions", status_code=303)
 
 
 @app.get("/settings")
