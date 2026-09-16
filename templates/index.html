@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}Search Leads - Lead Sourcer{% endblock %}
+{% block content %}
+<h1>Search Leads</h1>
+
+<form method="post" action="/search" class="search-form">
+    <label>
+        Company Domain / Name
+        <input type="text" name="domain" required value="{{ form.domain or '' }}" placeholder="e.g. example.com">
+    </label>
+
+    <label>
+        Max Results
+        <input type="number" name="max_results" min="1" max="100" value="{{ form.max_results or 25 }}">
+    </label>
+
+    <label>
+        Job Titles (comma-separated)
+        <input type="text" name="job_titles" value="{{ form.job_titles or '' }}" placeholder="e.g. VP Sales, Head of Marketing">
+    </label>
+
+    <label>
+        Locations (comma-separated)
+        <input type="text" name="locations" value="{{ form.locations or '' }}" placeholder="e.g. New York, Remote">
+    </label>
+
+    <fieldset>
+        <legend>Seniority</legend>
+        <div class="chips">
+            {% for option in seniority_options %}
+            <label class="chip">
+                <input type="checkbox" name="seniority" value="{{ option }}"
+                    {% if form.seniority and option in form.seniority %}checked{% endif %}>
+                {{ option }}
+            </label>
+            {% endfor %}
+        </div>
+    </fieldset>
+
+    <button type="submit">Search</button>
+</form>
+
+{% if error %}
+<div class="error-banner">
+    <strong>Error:</strong> {{ error }}
+</div>
+{% endif %}
+
+{% if results is not none %}
+    {% if results|length == 0 %}
+        <p class="empty-state">No leads found for this search.</p>
+    {% else %}
+    <table class="results-table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Title</th>
+                <th>Company</th>
+                <th>Location</th>
+                <th>LinkedIn</th>
+                <th>Email</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for lead in results %}
+            <tr>
+                <td>{{ lead.name }}</td>
+                <td>{{ lead.title or "-" }}</td>
+                <td>{{ lead.company or "-" }}</td>
+                <td>{{ lead.location or "-" }}</td>
+                <td>
+                    {% if lead.linkedin_url %}
+                    <a href="{{ lead.linkedin_url }}" target="_blank" rel="noopener">Profile</a>
+                    {% else %}-{% endif %}
+                </td>
+                <td>{{ lead.email or "-" }}</td>
+                <td>
+                    <form method="post" action="/basket/add">
+                        <input type="hidden" name="name" value="{{ lead.name }}">
+                        <input type="hidden" name="title" value="{{ lead.title or '' }}">
+                        <input type="hidden" name="company" value="{{ lead.company or '' }}">
+                        <input type="hidden" name="domain" value="{{ lead.domain or '' }}">
+                        <input type="hidden" name="location" value="{{ lead.location or '' }}">
+                        <input type="hidden" name="seniority" value="{{ lead.seniority or '' }}">
+                        <input type="hidden" name="linkedin_url" value="{{ lead.linkedin_url or '' }}">
+                        <input type="hidden" name="email" value="{{ lead.email or '' }}">
+                        <button type="submit">Add to basket</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+{% endif %}
+{% endblock %}

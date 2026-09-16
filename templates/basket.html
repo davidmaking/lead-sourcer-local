@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Basket - Lead Sourcer{% endblock %}
+{% block content %}
+<h1>Basket</h1>
+
+{% if leads|length == 0 %}
+<p class="empty-state">No leads saved yet. Go to <a href="/">Search</a> to find some.</p>
+{% else %}
+<table class="results-table">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Title</th>
+            <th>Company</th>
+            <th>Location</th>
+            <th>Seniority</th>
+            <th>LinkedIn</th>
+            <th>Email</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for lead in leads %}
+        <tr>
+            <td>{{ lead.name }}</td>
+            <td>{{ lead.title or "-" }}</td>
+            <td>{{ lead.company or "-" }}</td>
+            <td>{{ lead.location or "-" }}</td>
+            <td>{{ lead.seniority or "-" }}</td>
+            <td>
+                {% if lead.linkedin_url %}
+                <a href="{{ lead.linkedin_url }}" target="_blank" rel="noopener">Profile</a>
+                {% else %}-{% endif %}
+            </td>
+            <td>{{ lead.email or "-" }}</td>
+            <td>
+                <form method="post" action="/basket/remove">
+                    <input type="hidden" name="basket_id" value="{{ lead.basket_id }}">
+                    <button type="submit">Remove</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+{% endblock %}

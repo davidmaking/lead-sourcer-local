@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Settings - Lead Sourcer{% endblock %}
+{% block content %}
+<h1>Settings</h1>
+
+<h2>Apollo API Key</h2>
+{% if configured %}
+<p>Status: <strong class="status-ok">Configured</strong> ({{ masked }})</p>
+{% else %}
+<p>Status: <strong class="status-bad">Not configured</strong></p>
+{% endif %}
+
+<h3>How to set it</h3>
+<ol>
+    <li>Sign up for an account at <a href="https://app.apollo.io/" target="_blank" rel="noopener">apollo.io</a> and generate an API key.</li>
+    <li>Copy <code>.env.example</code> to <code>.env</code> in the project root, if you haven't already.</li>
+    <li>Set <code>APOLLO_API_KEY=your_key_here</code> in <code>.env</code>.</li>
+    <li>Restart the app (<code>uvicorn app:app --reload</code> will pick up the change on restart).</li>
+</ol>
+{% endblock %}
