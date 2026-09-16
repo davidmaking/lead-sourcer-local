@@ -99,6 +99,36 @@ button:hover { opacity: 0.9; }
     color: #666;
 }
 
+.tsv-export {
+    margin-bottom: 1.5rem;
+}
+
+.tsv-export-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.4rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.tsv-export-header button {
+    padding: 0.3rem 0.9rem;
+    font-size: 0.85rem;
+}
+
+#tsv-output {
+    width: 100%;
+    min-height: 100px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.85rem;
+    padding: 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    resize: vertical;
+}
+
 .results-table {
     width: 100%;
     border-collapse: collapse;

@@ -22,6 +22,8 @@ class ProviderError(Exception):
 @dataclass
 class Lead:
     name: str
+    first_name: Optional[str]
+    last_name: Optional[str]
     title: Optional[str]
     company: Optional[str]
     location: Optional[str]
@@ -90,9 +92,18 @@ def search(
     leads: list[Lead] = []
     for person in people[:max_results]:
         org = person.get("organization") or {}
+        name = person.get("name") or "Unknown"
+        first_name = person.get("first_name")
+        last_name = person.get("last_name")
+        if not first_name and not last_name and name != "Unknown":
+            parts = name.split(" ", 1)
+            first_name = parts[0]
+            last_name = parts[1] if len(parts) > 1 else None
         leads.append(
             Lead(
-                name=person.get("name") or "Unknown",
+                name=name,
+                first_name=first_name,
+                last_name=last_name,
                 title=person.get("title"),
                 company=org.get("name") or person.get("organization_name"),
                 location=person.get("city") or person.get("state") or person.get("country"),

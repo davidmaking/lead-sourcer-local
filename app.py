@@ -36,6 +36,21 @@ def _split_csv(value: str) -> list[str]:
     return [v.strip() for v in value.split(",") if v.strip()]
 
 
+def _build_tsv(results: list[dict]) -> str:
+    header = ["First Name", "Last Name", "Position", "Company", "Email"]
+    lines = ["\t".join(header)]
+    for lead in results:
+        row = [
+            lead.get("first_name") or "",
+            lead.get("last_name") or "",
+            lead.get("title") or "",
+            lead.get("company") or "",
+            lead.get("email") or "",
+        ]
+        lines.append("\t".join(row))
+    return "\n".join(lines)
+
+
 @app.get("/")
 def index(request: Request):
     return templates.TemplateResponse(
@@ -44,6 +59,7 @@ def index(request: Request):
         {
             "seniority_options": SENIORITY_OPTIONS,
             "results": None,
+            "tsv": None,
             "error": None,
             "form": {},
         },
@@ -80,6 +96,8 @@ def do_search(
         results = [
             {
                 "name": lead.name,
+                "first_name": lead.first_name,
+                "last_name": lead.last_name,
                 "title": lead.title,
                 "company": lead.company,
                 "domain": domain,
@@ -99,6 +117,7 @@ def do_search(
         {
             "seniority_options": SENIORITY_OPTIONS,
             "results": results,
+            "tsv": _build_tsv(results) if results else None,
             "error": error,
             "form": form_values,
         },

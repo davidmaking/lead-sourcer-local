@@ -50,6 +50,13 @@
     {% if results|length == 0 %}
         <p class="empty-state">No leads found for this search.</p>
     {% else %}
+    <div class="tsv-export">
+        <div class="tsv-export-header">
+            <span>Paste into a spreadsheet (First Name, Last Name, Position, Company, Email)</span>
+            <button type="button" id="copy-tsv-btn" onclick="copyTsv()">Copy</button>
+        </div>
+        <textarea id="tsv-output" readonly>{{ tsv }}</textarea>
+    </div>
     <table class="results-table">
         <thead>
             <tr>
@@ -94,4 +101,18 @@
     </table>
     {% endif %}
 {% endif %}
+
+<script>
+function copyTsv() {
+    const el = document.getElementById("tsv-output");
+    const btn = document.getElementById("copy-tsv-btn");
+    el.select();
+    el.setSelectionRange(0, 99999);
+    navigator.clipboard.writeText(el.value).then(() => {
+        const original = btn.textContent;
+        btn.textContent = "Copied!";
+        setTimeout(() => { btn.textContent = original; }, 1500);
+    });
+}
+</script>
 {% endblock %}
