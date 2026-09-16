@@ -77,7 +77,12 @@ def search(
         detail = ""
         try:
             body = resp.json()
-            detail = body.get("error_details", {}).get("message") or body.get("error") or resp.text[:300]
+            detail = (
+                body.get("error_details", {}).get("message")
+                or body.get("error")
+                or body.get("message")
+                or resp.text[:300]
+            )
         except ValueError:
             detail = resp.text[:300]
 
