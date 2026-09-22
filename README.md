@@ -22,6 +22,3 @@ Open http://localhost:8000 in your browser.
 2. **Basket** (`/basket`) — view and remove leads you've saved.
 3. **Settings** (`/settings`) — check whether an Apollo API key is currently
    configured (masked) and instructions for setting one.
-
-If no API key is configured, or Apollo rejects the request, the Search page
-shows a clear error message instead of an empty results table.
