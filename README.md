@@ -1,7 +1,7 @@
 # Lead Sourcer (Local)
 
 A small, single-user, local web app for searching and tracking sales/outreach
-leads at target companies. See `CLAUDE.md` for background and design notes.
+leads at target companies.
 
 ## Setup
 
